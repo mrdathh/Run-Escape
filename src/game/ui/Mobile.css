@@ -1841,10 +1841,6 @@
         padding: 2px 6px;
         font-size: 16px;
     }
-
-    .ui-chat.ui-room-chat-log {
-        max-height: 96px;
-    }
 }
 
 /* The Tombs' invocation board as tall as the screen at most, kept clear of the notch: its middle

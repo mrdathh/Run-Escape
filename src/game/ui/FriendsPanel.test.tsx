@@ -115,7 +115,6 @@ function setup({
         acceptInvite: vi.fn(() => "joining"),
         joinFriend: vi.fn(() => "joining"),
         declineInvite: vi.fn(),
-        sendChat: vi.fn(() => true),
         dismissFriendPopup: vi.fn((id: number) =>
             setFriends({
                 popups: store.getSnapshot().friends.popups.filter((p) => p.id !== id),
@@ -182,7 +181,6 @@ describe("on a relay without friends", () => {
         setup({ screen: "coop", friends: off, coop: { you: "alice", anyMap: true, room: room() } });
         expect(screen.queryByRole("button", { name: /^Invite friends/ })).toBeNull();
         expect(screen.queryByRole("button", { name: /as a friend$/ })).toBeNull();
-        expect(screen.queryByRole("log", { name: "Chat" })).toBeNull();
     }, 30000);
 
     test("a host's pair still only opens or closes the room", () => {
@@ -440,42 +438,6 @@ describe("in a room on a relay with friends", () => {
         fireEvent.click(within(choice).getByRole("button", { name: "Friends" }));
         fireEvent.click(screen.getByRole("button", { name: "Create" }));
         expect(menu.client.createRoom).toHaveBeenCalledExactlyOnceWith("friends");
-    }, 30000);
-
-    test("the chat shows its lines as text, and sends what's typed", () => {
-        expect.hasAssertions();
-        const { client } = inRoom({
-            chat: [
-                { id: 1, from: "bob", name: "Bob", text: "<b>hi</b>", mine: false, at: 0 },
-                { id: 2, from: "alice", name: "Alice", text: "hello", mine: true, at: 0 },
-                { id: 3, from: "carl", name: "", text: "bye", mine: false, at: 0 },
-            ],
-        });
-        const log = screen.getByRole("log", { name: "Chat" });
-        expect(within(log).getByText("<b>hi</b>")).toBeInTheDocument();
-        expect(log.querySelector("b")).toBeNull();
-        expect(within(log).getByText("Alice (you):")).toBeInTheDocument();
-        expect(within(log).getByText("Someone who left:")).toBeInTheDocument();
-        const input = screen.getByRole("textbox", { name: "Message the room" });
-        // What's typed never reaches the screen's own keys
-        const heard = vi.fn();
-        window.addEventListener("keydown", heard);
-        try {
-            fireEvent.keyDown(input, { code: "Escape", key: "Escape" });
-            fireEvent.keyDown(input, { code: "Space", key: " " });
-            expect(heard).not.toHaveBeenCalled();
-        } finally {
-            window.removeEventListener("keydown", heard);
-        }
-        fireEvent.change(input, { target: { value: "gl hf" } });
-        fireEvent.submit(input.closest("form")!);
-        expect(client.sendChat).toHaveBeenCalledExactlyOnceWith("gl hf");
-        expect(input).toHaveValue("");
-        // Kept when it didn't go
-        client.sendChat.mockReturnValueOnce(false);
-        fireEvent.change(input, { target: { value: "again" } });
-        fireEvent.submit(input.closest("form")!);
-        expect(input).toHaveValue("again");
     }, 30000);
 });
 

@@ -3,12 +3,10 @@ import {
     CoopLobby,
     CoopView,
     LOBBY_IDLE_MS,
-    MAX_CHAT_LINES,
     RESUME_WINDOW_MS,
     accessFlags,
     roomAccess,
 } from "./CoopLobby";
-import { MAX_CHAT_LENGTH } from "./protocol";
 
 // A WebSocket that's open at once and keeps what's sent, for driving the
 // lobby as a relay would
@@ -888,33 +886,6 @@ describe("a relay with friends", () => {
         expect(view()).toMatchObject({ friends: true, myCode: "MMMMMMMMMMMM", name: "Picked" });
     });
 
-    it("keeps the room's chat, its names and whose, the last 50, till leaving", async () => {
-        const { lobby, relay, view } = await inRoom();
-        relay.receive({ t: "chat", from: "p2", text: "hi" });
-        relay.receive({ t: "chat", from: "p1", text: "hello" });
-        relay.receive({ t: "chat", from: "p9", text: "gone already" });
-        expect(view().chat).toEqual([
-            expect.objectContaining({ from: "p2", name: "Lucky Cow", text: "hi", mine: false }),
-            expect.objectContaining({ from: "p1", name: "Steady Chicken", mine: true }),
-            expect.objectContaining({ from: "p9", name: "" }),
-        ]);
-        for (let i = 0; i < 60; i++) {
-            relay.receive({ t: "chat", from: "p2", text: `line ${i}` });
-        }
-        const chat = view().chat;
-        expect(chat).toHaveLength(MAX_CHAT_LINES);
-        expect(chat.at(-1)?.text).toBe("line 59");
-        expect(new Set(chat.map((line) => line.id)).size).toBe(MAX_CHAT_LINES);
-
-        expect(lobby.sendChat("   ")).toBe(false);
-        expect(lobby.sendChat(`  ${"x".repeat(MAX_CHAT_LENGTH + 10)}  `)).toBe(true);
-        expect(relay.sent.at(-1)).toEqual({ t: "chat", text: "x".repeat(MAX_CHAT_LENGTH) });
-
-        lobby.leave();
-        expect(view().chat).toEqual([]);
-        expect(lobby.sendChat("anyone?")).toBe(false);
-    });
-
     it("marks friends invited, and those who said no", async () => {
         const { lobby, relay, view } = await inRoom();
         const onDeclined = vi.fn();
@@ -935,13 +906,12 @@ describe("a relay with friends", () => {
         expect(lobby.invite("BBBBBBBBBBBB")).toBe(false);
     });
 
-    it("offers no invites, chat or names on a relay without friends", async () => {
+    it("offers no invites or names on a relay without friends", async () => {
         const { lobby, relay } = await welcomed(false);
         lobby.create(false, "lumbridge", false, false);
         relay.receive({ t: "room", room: { ...ROOM, members }, you: "p1" });
         const sent = relay.sent.length;
         expect(lobby.invite("BBBBBBBBBBBB")).toBe(false);
-        expect(lobby.sendChat("hi")).toBe(false);
         expect(lobby.setName("Zezima")).toBe(false);
         lobby.setAccess(false, true);
         expect(relay.sent.slice(sent)).toEqual([{ t: "settings", open: false }]);
@@ -1007,10 +977,11 @@ describe("a relay with friends", () => {
         expect(relay.sent.slice(sent)).toHaveLength(1);
     });
 
-    it("forgets the chat when the connection drops", async () => {
+    it("forgets the invites when the connection drops", async () => {
         const { relay, view } = await inRoom();
-        relay.receive({ t: "chat", from: "p2", text: "hi" });
+        relay.receive({ t: "inviteSent", to: "BBBBBBBBBBBB" });
+        expect(view().invited).toEqual({ BBBBBBBBBBBB: "sent" });
         relay.close();
-        expect(view()).toMatchObject({ chat: [], invited: {}, friends: false });
+        expect(view()).toMatchObject({ invited: {}, friends: false });
     });
 });

@@ -148,7 +148,7 @@ go stale. Add anything that cost you time to work out.
 | Friends: how they work, and what not to break          | `docs/DEVELOPMENT.md` (Co-op, Friends)                                 |
 | Friends' store: the secret, the list, recent players   | `client/coop/FriendsStore.ts` (`rune-survivors-friends`)               |
 | Friends' connection: presence, requests, invites       | `client/coop/Friends.ts`, `GameClient` (Friends), `protocol.ts`        |
-| Friends' window, popups, a room's chat and access      | `ui/FriendsPanel.tsx`, `ui/FriendPopups.tsx`, `ui/RoomChat.tsx`        |
+| Friends' window, popups and a room's access            | `ui/FriendsPanel.tsx`, `ui/FriendPopups.tsx`                           |
 | Friends on the relay (the Node one only)               | `server/coop-relay.mjs` (`friendCode`, `setFriends`, `invite`)         |
 | Friends end to end: the real relay and client (~40 s)  | `client/coop/FriendsRelay.test.ts`                                     |
 | Co-op flags: where players are from                    | `docs/DEVELOPMENT.md` (Co-op, Flags)                                   |

@@ -48,9 +48,8 @@ export type Unlocks = { maps: string[]; endless: string[]; hard?: string[] };
 export const FRIEND_CODE_LENGTH = 12;
 // The codes a game can list as friends
 export const MAX_FRIENDS = 200;
-// A name a player picks, in characters, and a line of a room's chat
+// A name a player picks, in characters
 export const MAX_NAME_LENGTH = 20;
-export const MAX_CHAT_LENGTH = 200;
 
 // A code as typed or pasted ("abcd-efgh jkmn"): the code, or undefined if it
 // can't be one
@@ -266,8 +265,6 @@ export type ClientMessage =
     | { t: "invite"; to: string }
     // No thanks, to an invite to this room from this friend
     | { t: "decline"; to: string; code: string }
-    // A line for the room's chat
-    | { t: "chat"; text: string }
     | {
           t: "create";
           open: boolean;
@@ -309,7 +306,7 @@ export type ServerMessage =
           country?: string;
           // The open rooms come again whenever they change, without asking
           listUpdates?: boolean;
-          // The relay has friends: hello, friends, invite, chat and the rest
+          // The relay has friends: hello, friends, invite and the rest
           friends?: true;
       }
     // Who the relay takes this game for, after its hello: its friend code,
@@ -328,9 +325,6 @@ export type ServerMessage =
     | { t: "inviteSent"; to: string }
     // A friend's said no to your invite
     | { t: "declined"; from: FriendRef }
-    // A line of the room's chat, from this member (their id in the room), to
-    // everyone in it, whoever said it too
-    | { t: "chat"; from: string; text: string }
     // This player's new name, after asking for one
     | { t: "named"; name: string }
     | { t: "pong" }

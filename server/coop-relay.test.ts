@@ -2003,46 +2003,6 @@ describe("co-op relay", () => {
             expect((await plain.room()).room.friends).toBe(false);
         });
 
-        it("sends a room's chat round it, cleaned, and slows down a flood", async () => {
-            const { host, guests } = await party(1);
-            const { room } = await host.room();
-            guests[0].send({ t: "chat", text: "  hi\u0000 there\n\n" + "!".repeat(300) });
-            const line = {
-                t: "chat",
-                from: room.members[1].id,
-                text: ("hi there " + "!".repeat(300)).slice(0, 200),
-            };
-            expect(await host.next("chat")).toEqual(line);
-            expect(await guests[0].next("chat")).toEqual(line);
-            // Nothing to say, or nobody to say it to
-            guests[0].send({ t: "chat", text: "​ \n" });
-            guests[0].send({ t: "chat", text: 42 });
-            const outside = await connect();
-            outside.send({ t: "chat", text: "anyone?" });
-            for (let i = 0; i < 10; i++) {
-                host.send({ t: "chat", text: `line ${i}` });
-            }
-            host.send({ t: "ping" });
-            await host.next("pong");
-            await settle();
-            expect(host.messages.filter((m) => m.t === "chat").map((m) => m.text)).toEqual(
-                Array.from({ length: 8 }, (_, i) => `line ${i}`),
-            );
-            expect(guests[0].messages.filter((m) => m.t === "chat")).toHaveLength(8);
-            expect(outside.messages.filter((m) => m.t === "chat")).toEqual([]);
-        });
-
-        it("keeps a room open while its players talk", async () => {
-            await restart({ idleMs: 1000 });
-            const { host } = await party(0);
-            const start = Date.now();
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            host.send({ t: "chat", text: "still here" });
-            await host.next("chat");
-            relay.sweep(start + 1050);
-            expect(relay.roomCount).toBe(1);
-        });
-
         it("keeps a presence connection open however idle, and no other for its friends or status", async () => {
             await restart({ idleConnectionMs: 300 });
             const presence = await player("alice");
@@ -2050,7 +2010,6 @@ describe("co-op relay", () => {
             await new Promise((resolve) => setTimeout(resolve, 400));
             plain.send({ t: "friends", ids: [presence.friendId] });
             plain.send({ t: "status", solo: true });
-            plain.send({ t: "chat", text: "hello?" });
             plain.send({ t: "invite", to: presence.friendId });
             plain.send({ t: "decline", to: presence.friendId, code: "ABCDEFGH" });
             await plain.next("error");

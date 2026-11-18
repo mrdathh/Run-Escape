@@ -11,7 +11,6 @@ import {
     GameStart,
     GoneReason,
     Loadout,
-    MAX_CHAT_LENGTH,
     Member,
     MissingMap,
     RoomListing,
@@ -55,32 +54,15 @@ export type CoopView = {
     available?: boolean;
     // The relay lets players into rooms on maps they haven't unlocked
     anyMap: boolean;
-    // The relay has friends (welcome.friends): invites, chat, picked names and rooms for friends.
+    // The relay has friends (welcome.friends): invites, picked names and rooms for friends.
     // Without it none of those are offered.
     friends: boolean;
     // This game's friend code, as the relay said after its hello
     myCode?: string;
-    // The room's chat, oldest first, the last MAX_CHAT_LINES of it. Emptied on leaving the room
-    // or losing the connection.
-    chat: ChatLine[];
     // Friends invited into this room, by their code: the invite reached their game (sent), or
     // they said no (declined). Emptied on leaving the room.
     invited: Record<string, "sent" | "declined">;
 };
-
-// A line of the room's chat. id: to key it by, counting up. from: the member's id in the room.
-// name: theirs when it came ("" if they'd gone by then). mine: this player said it. at:
-// Date.now() when it came.
-export type ChatLine = {
-    id: number;
-    from: string;
-    name: string;
-    text: string;
-    mine: boolean;
-    at: number;
-};
-
-export const MAX_CHAT_LINES = 50;
 
 export const OFFLINE: CoopView = {
     status: "offline",
@@ -92,7 +74,6 @@ export const OFFLINE: CoopView = {
     name: "",
     anyMap: false,
     friends: false,
-    chat: [],
     invited: {},
 };
 
@@ -189,7 +170,7 @@ function getRoomUrl(code: string, ticket: string, param = "ticket"): string {
 
 // What goes to the room's own connection, when there is one: everything said
 // in a room. The rest (pings, the list, making or joining one) is the lobby's.
-// The Cloudflare relay hasn't friends, so never gets name, invite or chat, but
+// The Cloudflare relay hasn't friends, so never gets name or invite, but
 // they're the room's all the same.
 const ROOM_MESSAGES: ReadonlySet<ClientMessage["t"]> = new Set([
     "leave",
@@ -197,7 +178,6 @@ const ROOM_MESSAGES: ReadonlySet<ClientMessage["t"]> = new Set([
     "rename",
     "name",
     "invite",
-    "chat",
     "settings",
     "kick",
     "disband",
@@ -316,7 +296,6 @@ export class CoopLobby {
     // of the hello.
     private welcomed = false;
     private beforeWelcome?: ClientMessage;
-    private chatId = 0;
     // The relay's HTTP check said it has friends too (checkAvailable): only
     // then is the friends' connection made. Its welcome still has the last word.
     probedFriends = false;
@@ -373,12 +352,9 @@ export class CoopLobby {
         const previousHost = this.view.room?.hostId;
         const previousCode = this.view.room?.code;
         this.view = { ...this.view, ...changes };
-        // A room's chat and invites are that room's: gone with it, every way out
-        if (
-            this.view.room?.code !== previousCode &&
-            (this.view.chat.length > 0 || Object.keys(this.view.invited).length > 0)
-        ) {
-            this.view = { ...this.view, chat: [], invited: {} };
+        // A room's invites are that room's: gone with it, every way out
+        if (this.view.room?.code !== previousCode && Object.keys(this.view.invited).length > 0) {
+            this.view = { ...this.view, invited: {} };
         }
         this.store.set({ coop: this.view });
         if (this.view.room?.mapId !== previousMap) {
@@ -446,7 +422,6 @@ export class CoopLobby {
                     name: "",
                     friends: false,
                     myCode: undefined,
-                    chat: [],
                     invited: {},
                     rooms: [],
                     roomsPage: 0,
@@ -473,7 +448,6 @@ export class CoopLobby {
             name: "",
             friends: false,
             myCode: undefined,
-            chat: [],
             invited: {},
             rooms: [],
             roomsPage: 0,
@@ -922,9 +896,6 @@ export class CoopLobby {
             case "identity":
                 this.update({ myCode: message.friendId, name: message.name });
                 break;
-            case "chat":
-                this.receiveChat(message.from, message.text);
-                break;
             case "inviteSent":
                 if (this.view.room && typeof message.to === "string") {
                     this.update({ invited: { ...this.view.invited, [message.to]: "sent" } });
@@ -1211,18 +1182,6 @@ export class CoopLobby {
         return true;
     }
 
-    // A line for the room's chat. It shows when the relay sends it back, to
-    // everyone at once. False for an empty one, or no room or chat to say it in.
-    sendChat(text: string): boolean {
-        const line = text.trim().slice(0, MAX_CHAT_LENGTH);
-        if (!line || !this.view.friends || !this.view.room) {
-            return false;
-        }
-        this.activeAt = Date.now();
-        this.send({ t: "chat", text: line });
-        return true;
-    }
-
     // A name this player picked, on a relay with friends (it answers named, or
     // an error during a run). False for one that's empty once tidied.
     setName(text: string): boolean {
@@ -1244,22 +1203,6 @@ export class CoopLobby {
         if (picked && me && me.name !== picked) {
             this.send({ t: "name", name: picked });
         }
-    }
-
-    private receiveChat(from: string, text: string): void {
-        const room = this.view.room;
-        if (!room || typeof from !== "string" || typeof text !== "string") {
-            return;
-        }
-        const line: ChatLine = {
-            id: ++this.chatId,
-            from,
-            name: room.members.find((m) => m.id === from)?.name ?? "",
-            text: text.slice(0, MAX_CHAT_LENGTH),
-            mine: from === this.view.you,
-            at: Date.now(),
-        };
-        this.update({ chat: [...this.view.chat, line].slice(-MAX_CHAT_LINES) });
     }
 
     setMap(mapId: string, endless: boolean, hard: boolean): void {

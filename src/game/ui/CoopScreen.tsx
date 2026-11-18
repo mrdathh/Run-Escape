@@ -57,7 +57,6 @@ import {
     RunInvocationsButton,
 } from "./Invocations";
 import { ItemIcon } from "./ItemIcon";
-import { RoomChat } from "./RoomChat";
 import { useMenuKeys } from "./menuKeys";
 import { usePhoneLayout } from "./usePhoneLayout";
 
@@ -885,7 +884,6 @@ function CoopLobby({ ui, client, room }: Props & { room: RoomView }): JSX.Elemen
             )}
         </>
     );
-    const chat = friends ? <RoomChat ui={ui} client={client} phone={phone} /> : null;
     const overlays = (
         <>
             {friends && friendsOpen && (
@@ -925,17 +923,11 @@ function CoopLobby({ ui, client, room }: Props & { room: RoomView }): JSX.Elemen
                     map={map}
                     onCardNeeds={setNeedsFor}
                 />
-                <div
-                    className={
-                        "ui-panel rs-border rs-background ui-select-panel ui-select-maps ui-coop-party" +
-                        (chat ? " ui-coop-party-chat" : "")
-                    }
-                >
+                <div className="ui-panel rs-border rs-background ui-select-panel ui-select-maps ui-coop-party">
                     {party}
                     {mapHeading}
                     {isHost ? mapList : <div className="ui-select-details">{mapSummary}</div>}
                     {notes}
-                    {chat}
                 </div>
                 <div className="ui-panel rs-border rs-background ui-select-bar ui-coop-bar">
                     {leave}
@@ -998,15 +990,9 @@ function CoopLobby({ ui, client, room }: Props & { room: RoomView }): JSX.Elemen
     );
     return (
         <div className="ui-fill ui-select ui-coop-phone">
-            <div
-                className={
-                    "ui-panel rs-border rs-background ui-select-panel ui-coop-party" +
-                    (chat ? " ui-coop-party-chat" : "")
-                }
-            >
+            <div className="ui-panel rs-border rs-background ui-select-panel ui-coop-party">
                 {party}
                 {notes}
-                {chat}
             </div>
             <div className="ui-coop-phone-side">
                 {isHost ? (

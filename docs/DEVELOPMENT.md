@@ -272,29 +272,28 @@ can't tell where anyone is, and nobody gets a flag.
 
 Its limits, at the top of `server/coop-relay.mjs`:
 
-| What                           | Limit                                                                                                                    |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| Rooms on the relay             | 500, or `MULTIPLAYER_MAX_ROOMS`; past that, making one says they're all taken (and the menu shows it)                    |
-| Connections from one address   | 16 (a household or LAN party behind one address), and 128 from one IPv6 /48                                              |
-| Rooms hosted from one address  | 4, and 16 from one IPv6 /48                                                                                              |
-| Rooms made from one address    | 10 a minute                                                                                                              |
-| Rooms joined from one address  | 12 a minute (joining and leaving are each a room update for everyone in it)                                              |
-| Wrong room codes               | 20 a minute from one address, and 80 from its IPv6 /48, then it has to wait                                              |
-| A room with nothing happening  | closed after 30 minutes (pings, looking at the list, players' own updates and names, and invites don't count; chat does) |
-| A room hearing how it is       | at most once each 250 ms, with the latest, however often it changes                                                      |
-| What a host sends its room     | 64 KB/s (a run's start and frames), saving up to 256 KB; a host past it is dropped                                       |
-| A guest's input for the host   | 1 KB each and 60 a second; past that it goes no further                                                                  |
-| A player's own update          | 40 KB, or it's ignored                                                                                                   |
-| A player's loadout             | 16 KB, or it's dropped                                                                                                   |
-| A message                      | 256 KB, in 16 pieces at most, and UTF-8; nested 16 deep at most, apart from the host's frames                            |
-| One connection                 | 400 frames a second (empty ones and pings included) and 512 KB a second, or it's dropped                                 |
-| Waiting to go out to one       | 1 MB: a connection that stops reading is dropped                                                                         |
-| A name a player picks          | 20 characters, cleaned of control and invisible ones; 10 changes a minute on one connection                              |
-| A friends list                 | 200 codes, sent 30 times a minute on one connection                                                                      |
-| Friend requests                | once from each player to each connection, and 20 a minute reaching one connection                                        |
-| Invites                        | the same friend once each 10 seconds, and 20 a minute from one connection; 20 declines a minute                          |
-| A room's chat                  | 200 characters a line, and 8 lines each 10 seconds from one connection                                                   |
-| Friends hearing how others are | at most once each 500 ms, with the latest, however often it changes                                                      |
+| What                           | Limit                                                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Rooms on the relay             | 500, or `MULTIPLAYER_MAX_ROOMS`; past that, making one says they're all taken (and the menu shows it)         |
+| Connections from one address   | 16 (a household or LAN party behind one address), and 128 from one IPv6 /48                                   |
+| Rooms hosted from one address  | 4, and 16 from one IPv6 /48                                                                                   |
+| Rooms made from one address    | 10 a minute                                                                                                   |
+| Rooms joined from one address  | 12 a minute (joining and leaving are each a room update for everyone in it)                                   |
+| Wrong room codes               | 20 a minute from one address, and 80 from its IPv6 /48, then it has to wait                                   |
+| A room with nothing happening  | closed after 30 minutes (pings, looking at the list, players' own updates and names, and invites don't count) |
+| A room hearing how it is       | at most once each 250 ms, with the latest, however often it changes                                           |
+| What a host sends its room     | 64 KB/s (a run's start and frames), saving up to 256 KB; a host past it is dropped                            |
+| A guest's input for the host   | 1 KB each and 60 a second; past that it goes no further                                                       |
+| A player's own update          | 40 KB, or it's ignored                                                                                        |
+| A player's loadout             | 16 KB, or it's dropped                                                                                        |
+| A message                      | 256 KB, in 16 pieces at most, and UTF-8; nested 16 deep at most, apart from the host's frames                 |
+| One connection                 | 400 frames a second (empty ones and pings included) and 512 KB a second, or it's dropped                      |
+| Waiting to go out to one       | 1 MB: a connection that stops reading is dropped                                                              |
+| A name a player picks          | 20 characters, cleaned of control and invisible ones; 10 changes a minute on one connection                   |
+| A friends list                 | 200 codes, sent 30 times a minute on one connection                                                           |
+| Friend requests                | once from each player to each connection, and 20 a minute reaching one connection                             |
+| Invites                        | the same friend once each 10 seconds, and 20 a minute from one connection; 20 declines a minute               |
+| Friends hearing how others are | at most once each 500 ms, with the latest, however often it changes                                           |
 
 An IPv6 address counts by its /64, which is what one home or server gets, and its /48 has looser
 limits of its own: one person can easily have all of a /48's /64s, but a mobile provider can put
@@ -308,7 +307,7 @@ makes the relay throw drops that connection, never the relay, and a request whos
 is a 400. `serve.mjs` turns away WebSocket upgrades to any other path rather than leaving them
 open, and answers `Range` with 206, as the cache's download resumes with one.
 
-Friends (friend codes, presence, invites, rooms for friends and chat) are only on this
+Friends (friend codes, presence, invites and rooms for friends) are only on this
 relay, not the Cloudflare one: it says so with `friends` in its welcome and its plain GET. A game
 that's said who it is (`hello`) with `presence` keeps that connection open for as long as it runs,
 to hear about friends, and the relay never closes it for being idle (it still has to answer
@@ -3231,10 +3230,6 @@ relay). The relay won't take a name during a room's run, as everyone's copy has 
 `GameClient.setPlayerName` doesn't send it to the room then, and `CoopLobby` sends it once the
 run's over (`sendNameAfterRun`).
 
-**Chat** is a room's, on the room's connection (`chat`), sent back to everyone in it, the sender
-too. The game keeps the last `MAX_CHAT_LINES` (`CoopView.chat`) and empties them on leaving the
-room. A line is shown as text, never as HTML.
-
 **Recent players** are the others in a co-op run, noted as it starts, by the codes their games
 gave the room (`MemberView.friendId`); never someone already a friend.
 
@@ -3245,8 +3240,7 @@ friend online or saying no stays until the UI dismisses it (`FriendPopups` does 
 nothing's made inert for them (`inertOthers` spares them as it does windows), a click on one
 leaves the focus where it was, and in a run they keep to the left and wait under its windows.
 The Friends window (`ui/FriendsPanel.tsx`) takes every key while it's open, as `ConfirmDialog`
-does, since the title starts a run on Space and the co-op menu leaves on Escape. A room's chat
-input stops its keys going further, too.
+does, since the title starts a run on Space and the co-op menu leaves on Escape.
 
 **Invite links.** The desktop and Android apps' own address is one nobody else can open, so a
 build with `VITE_PUBLIC_URL` (the website's address) makes invite links with that instead. A

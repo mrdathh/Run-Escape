@@ -141,8 +141,7 @@ const IDLE_MS = 30 * 60_000;
 // Messages that don't count as doing anything in a room, for IDLE_MS: pings,
 // browsing, and a player's own updates and name, which could otherwise be
 // sent now and then to hold a room for ever. The same goes for what the
-// friends system sends by itself, and for invites. A line of chat is someone
-// there, but only once it's gone round the room ("chat" sees to that).
+// friends system sends by itself, and for invites.
 const IDLE_MESSAGES = new Set([
     "ping",
     "list",
@@ -154,21 +153,12 @@ const IDLE_MESSAGES = new Set([
     "status",
     "invite",
     "decline",
-    "chat",
 ]);
 // And those that don't count as a connection doing anything, for
 // IDLE_CONNECTION_MS: what a game sends on its own while it waits (a friends
 // list or a status could be sent for ever), and what's only for a room. A
 // presence connection is never closed for being idle anyway.
-const PASSIVE_MESSAGES = new Set([
-    "ping",
-    "list",
-    "friends",
-    "status",
-    "invite",
-    "decline",
-    "chat",
-]);
+const PASSIVE_MESSAGES = new Set(["ping", "list", "friends", "status", "invite", "decline"]);
 // Bigger than any real loadout (the shop's bonuses, unlocked items and
 // Armoury); a bigger one is dropped rather than sent round the room
 export const MAX_LOADOUT_BYTES = 16 * 1024;
@@ -238,12 +228,11 @@ const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const CODE_LENGTH = 8;
 const WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
-// Friends. These four are the game's too, in
+// Friends. These three are the game's too, in
 // src/game/client/coop/protocol.ts: change them there as well.
 const FRIEND_CODE_LENGTH = 12;
 const MAX_FRIENDS = 200;
 const MAX_NAME_LENGTH = 20;
-const MAX_CHAT_LENGTH = 200;
 // What a game shows the relay to say who it is (hello). Only its friend code
 // is kept, and only while it's connected.
 const SECRET_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
@@ -263,8 +252,6 @@ const MAX_REQUESTS_REMEMBERED = 1000;
 const MAX_INVITES_PER_MINUTE = 20;
 const INVITE_AGAIN_MS = 10_000;
 const MAX_DECLINES_PER_MINUTE = 20;
-// Lines of a room's chat from one connection, in 10 seconds
-const MAX_CHATS_PER_TEN_SECONDS = 8;
 // How often friends hear how their friends are, with the latest, however
 // often that changes (a room's players coming and going, say)
 const PRESENCE_MS = 500;
@@ -688,7 +675,7 @@ function cleanId(id) {
     return typeof id === "string" ? id.replace(/[^a-z0-9_]/g, "").slice(0, 40) : "";
 }
 
-// Text a player typed (a name, a line of chat), as everyone else can be shown
+// Text a player typed (a name), as everyone else can be shown
 // it: no control or invisible characters, one space where there were any, and
 // at most max characters. Empty if there's nothing left.
 function cleanText(text, max) {
@@ -750,7 +737,6 @@ export function createRelay(limits = {}) {
         invitesPerMinute = MAX_INVITES_PER_MINUTE,
         inviteAgainMs = INVITE_AGAIN_MS,
         declinesPerMinute = MAX_DECLINES_PER_MINUTE,
-        chatsPerTenSeconds = MAX_CHATS_PER_TEN_SECONDS,
         // The proxy in front (see client-ip.mjs), as the server's set it
         proxy = proxyMode(),
         // Rooms take players without their map (see isAnyMapOn)
@@ -1238,10 +1224,10 @@ export function createRelay(limits = {}) {
 
     // Whether this address has done something (made a room, tried a wrong
     // code) fewer than limit times in the last minute, and if so, notes it.
-    // Or a connection, by what it did (client.recent), in another window.
-    function underLimit(times, address, limit, windowMs = 60_000) {
+    // Or a connection, by what it did (client.recent).
+    function underLimit(times, address, limit) {
         const now = Date.now();
-        const recent = (times.get(address) ?? []).filter((t) => now - t < windowMs);
+        const recent = (times.get(address) ?? []).filter((t) => now - t < 60_000);
         const under = recent.length < limit;
         if (under) {
             recent.push(now);
@@ -1868,22 +1854,6 @@ export function createRelay(limits = {}) {
                 }
                 return;
             }
-            case "chat": {
-                if (!room) {
-                    return;
-                }
-                const text = cleanText(message.text, MAX_CHAT_LENGTH);
-                if (!text || !underLimit(client.recent, "chat", chatsPerTenSeconds, 10_000)) {
-                    return;
-                }
-                // Someone's there, talking (see IDLE_MESSAGES)
-                room.lastActive = Date.now();
-                const line = frameOf({ t: "chat", from: client.id, text });
-                for (const member of room.members) {
-                    member.connection.write(line);
-                }
-                return;
-            }
             case "create": {
                 if (rooms.size >= maxRooms) {
                     error(FULL_TEXT);
@@ -2268,7 +2238,7 @@ export function createRelay(limits = {}) {
             country: client.country,
             // Changes to the open rooms are sent without asking
             listUpdates: true,
-            // Friend codes, presence, invites and chat
+            // Friend codes, presence and invites
             friends: true,
         });
         if (head && head.length > 0) {

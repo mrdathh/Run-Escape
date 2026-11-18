@@ -1,5 +1,5 @@
-/* Friends (FriendsPanel.tsx, FriendPopups.tsx, RoomChat.tsx): the window, the button that opens
-   it, the popups over every screen and a room's chat. Phones' rules are in Mobile.css. */
+/* Friends (FriendsPanel.tsx, FriendPopups.tsx): the window, the button that opens it and the
+   popups over every screen. Phones' rules are in Mobile.css. */
 
 .ui-friends {
     width: min(540px, calc(94vw / var(--ui-scale)));
@@ -242,57 +242,4 @@
     display: flex;
     gap: 4px;
     margin-left: auto;
-}
-
-/* A room's chat, at the bottom of the party's panel. It never gives up height: the host's map
-   list does (it scrolls), down to a row, and only past that does the panel scroll, so the lines
-   and the input stay together and in reach. */
-.ui-room-chat {
-    flex: none;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-/* Two lines at least, four or so at most */
-.ui-chat.ui-room-chat-log {
-    flex: none;
-    min-height: 52px;
-    max-height: 96px;
-    box-sizing: border-box;
-    font-size: 15px;
-    overflow-wrap: anywhere;
-}
-
-.ui-coop-party.ui-coop-party-chat {
-    overflow-y: auto;
-}
-
-.ui-coop-party-chat > .ui-coop-maps {
-    min-height: 48px;
-}
-
-/* One empty place shows rather than every one, as on a phone, to leave the chat its room */
-.ui-coop-party-chat .ui-coop-member-empty + .ui-coop-member-empty {
-    display: none;
-}
-
-.ui-room-chat-empty {
-    color: var(--ui-text-faint);
-}
-
-.ui-room-chat-mine .ui-chat-source {
-    color: var(--ui-yellow);
-}
-
-.ui-room-chat-say {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0;
-}
-
-.ui-room-chat-toggle {
-    align-self: flex-start;
 }

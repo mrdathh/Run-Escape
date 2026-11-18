@@ -41,9 +41,9 @@ built on [rs-map-viewer](https://github.com/dennisdev/rs-map-viewer), the code b
   adventurer, shared levels, live party stats in the menu, and the run going on while anyone's
   standing.
 - **Friends** for co-op, with no accounts: swap friend codes, see who's online and where, invite
-  them into your room or open a room to friends only, with a chat in each room and the players
-  you've recently played with. They're on the Node relay (`bun run start`, `bun run serve`); on
-  the Cloudflare one the game is as it was.
+  them into your room or open a room to friends only, and see who you've recently played with.
+  They're on the Node relay (`bun run start`, `bun run serve`); on the Cloudflare one the game is
+  as it was.
 - **Phosani's Nightmare**, a boss fight on its own once Hallowed Night's beaten: no waves, no
   picks and no items, only the Inquisitor's crossbow and her, quicker and with more at once.
 - **Justiciar Zachariah**, the next boss fight, in a court hung in the Hallowed Sepulchre's dark

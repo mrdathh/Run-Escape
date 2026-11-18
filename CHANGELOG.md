@@ -16,7 +16,6 @@ the version in the corner).
 - Rooms for friends: friends of anyone in the room can see it and join, without it being open to
   all.
 - Pick your own name for co-op.
-- A chat in co-op rooms.
 - Recently played with: the players from your last co-op runs, to add as friends.
 
 ### Fixed

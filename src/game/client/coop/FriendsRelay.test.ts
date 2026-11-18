@@ -18,7 +18,7 @@ import type { GameStore } from "../GameStore";
 import { CoopLobby, CoopView, OFFLINE } from "./CoopLobby";
 import { FriendView, FriendsClient, FriendsView } from "./Friends";
 import { FRIENDS_KEY, FriendsStore } from "./FriendsStore";
-import { GameStart, MAX_CHAT_LENGTH, formatFriendCode } from "./protocol";
+import { GameStart, formatFriendCode } from "./protocol";
 
 // Generous: the release machine is slow, and every step here is real sockets and timers
 const WAIT_MS = 20_000;
@@ -589,54 +589,6 @@ describe("friends, the game against the real relay", () => {
             );
             expect(b.popups()).toEqual([`request ${a.code}`]);
             expect(a.sees(b)).toMatchObject({ online: false, pending: true });
-        },
-        TEST_MS,
-    );
-
-    it(
-        "passes a room's chat round, whose and in order, cut short, and slows a flood",
-        async () => {
-            const [a, b] = await started("a", "b");
-            await befriend(a, b);
-            await join(b, await roomOf(a), a);
-
-            expect(a.lobby!.sendChat("hello from a")).toBe(true);
-            await until(() => expect(b.coop.chat).toHaveLength(1));
-            expect(b.lobby!.sendChat("  hi a  ")).toBe(true);
-            await until(() => expect(a.coop.chat).toHaveLength(2));
-            await until(() => expect(b.coop.chat).toHaveLength(2));
-            const lines = (player: Player) =>
-                player.coop.chat.map((line) => [line.name, line.text, line.mine]);
-            expect(lines(a)).toEqual([
-                [a.name, "hello from a", true],
-                [b.name, "hi a", false],
-            ]);
-            expect(lines(b)).toEqual([
-                [a.name, "hello from a", false],
-                [b.name, "hi a", true],
-            ]);
-
-            a.lobby!.sendChat("x".repeat(MAX_CHAT_LENGTH + 50));
-            await until(() => expect(b.coop.chat).toHaveLength(3));
-            expect(b.coop.chat[2].text).toBe("x".repeat(MAX_CHAT_LENGTH));
-
-            // A flood: the relay takes so many in ten seconds, and drops the rest without a word
-            for (let i = 0; i < 10; i++) {
-                a.lobby!.sendChat(`line ${i}`);
-            }
-            // Said after them on a's connection, so they've all come by the time it has
-            a.lobby!.setMap("draynor", false, false);
-            await until(() => expect(a.coop.room?.mapId).toBe("draynor"));
-            const fromA = a.coop.chat.filter((line) => line.mine);
-            expect(fromA).toHaveLength(8);
-            expect(fromA.at(-1)!.text).toBe("line 5");
-            // Still connected, and still talking
-            b.lobby!.sendChat("still here?");
-            await until(() => expect(a.coop.chat.at(-1)?.text).toBe("still here?"));
-            expect(a.coop.status).toBe("online");
-            expect(a.coop.chat.map((line) => line.id)).toEqual(
-                [...a.coop.chat.map((line) => line.id)].sort((x, y) => x - y),
-            );
         },
         TEST_MS,
     );

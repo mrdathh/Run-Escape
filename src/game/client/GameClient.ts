@@ -1984,11 +1984,6 @@ export class GameClient implements GameFrameHandler {
         return "joining";
     }
 
-    // A line for the room's chat; false if there was nothing to say or nowhere to say it
-    sendChat(text: string): boolean {
-        return this.coop.sendChat(text);
-    }
-
     dismissFriendPopup(id: number): void {
         this.friends.dismissPopup(id);
     }
